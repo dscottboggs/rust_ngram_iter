@@ -4,7 +4,7 @@ mod bigram_test;
 mod trigram_test;
 
 use crate::{state::State, Iterable};
-use std::mem::MaybeUninit;
+use std::mem::{MaybeUninit, transmute_copy};
 
 /// An iterator over arbitrary-N-grams of arbitrary `Copy` types `T`.
 ///
@@ -50,7 +50,9 @@ where
         if N < 2 {
             panic!("ngram must have N of 2 or more")
         }
-        let mut out: [MaybeUninit<T>; N] = MaybeUninit::uninit_array();
+        let mut out: [MaybeUninit<T>; N] = unsafe {
+            MaybeUninit::uninit().assume_init()
+        };
         match self.state {
             State::Start => {
                 if let Some(item) = self.it.next() {
@@ -98,7 +100,7 @@ where
             }
             State::End => return None,
         }
-        Some(unsafe { MaybeUninit::array_assume_init(out) })
+        Some(unsafe { transmute_copy(&out) })
     }
 }
 
